@@ -5,53 +5,162 @@
     # You can define variables here.
     # One use for this is to ensure that variables expected to be passed from the SRC portal have sane defaults.
     # For example:
-    _src_component_foo: "{{ src_component_foo | default('fallback value') }}"
-    _src_component_bar: "Xone,Xtwo,Xthree"
-    _src_component_boolean: "{{ src_component_boolean | default(true, true) | bool }}"
+    # _src_component_foo: "{{ src_component_foo | default('fallback value') }}"
+    # _src_component_bar: "Xone,Xtwo,Xthree"
+    # _src_component_boolean: "{{ src_component_boolean | default(true, true) | bool }}"
     # But of course you can also define ordinary variables:
-    testfile: /tmp/test
-    test_pip_packages: []
+    # testfile: /tmp/test
+    # test_pip_packages: []
   gather_facts: true
 
   roles:
     - role: uusrc.general.fact_regular_users
 
   tasks:
-    # Some example tasks below to introduce Ansible
+    - name: update linux
+      ansible.builtin.command:
+        args:
+          chdir: "{{ target_directory }}" # permanent storage
+        cmd: sudo apt-get update
 
-    - name: Loop over all non-system users and display their names
-      ansible.builtin.debug:
-        msg: The user {{ item.user }} exists on the system.
-      with_items: "{{ fact_regular_users }}"
-      when: ansible_os_family == 'Debian' # we can use Ansible OS facts because we have set gather_facts to true
+    - name: install certificates
+      ansible.builtin.command:
+        cmd: sudo apt-get install ca-certificates curl
 
-    - name: This is a block of tasks that belong together
-      when: _src_component_boolean # this condition is applied to all tasks in the block
-      tags: molecule-idempotence-notest # same for tags
-      block:
+    - name: install keyrings 1
+      ansible.builtin.command:
+        cmd: sudo install -m 0755 -d /etc/apt/keyrings
 
-        - name: Copy some content to a file
-          ansible.builtin.copy:
-            dest: "{{ testfile }}"
-            mode: "0700"
-            owner: root
-            group: root
-            content: "{{ _src_component_bar | split | map('regex_replace', 'X', '') | join }}" # You can create pipes using filters
-            # src: foo.txt # instead of 'content', you can also pass the 'src' argument to copy an entire file
+    - name: install keyrings 2
+      ansible.builtin.command:
+        cmd: sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 
-        - name: Cat the contents of this file
-          ansible.builtin.command:
-            cmd: cat {{ testfile }}
-          register: cat_testfile # store the results of this module in a new variable
+    - name: install keyrings 3
+      ansible.builtin.command:
+        cmd: sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-        - name: Debug the results of our cat command
-          ansible.builtin.debug:
-            var: cat_testfile.stdout
+    - name: install uidmap
+      ansible.builtin.command:
+        cmd: sudo apt-get install -y uidmap systemd-container
 
-        - name: Unlike the command module, shell module can use shell features like redirection
-          ansible.builtin.shell:
-            cmd: cat {{ testfile }} > /tmp/test2
+    - name: enable rootless docker
+      ansible.builtin.shell:
+        cmd: sudo machinectl shell $(whoami)@ /bin/bash -c 'dockerd-rootless-setuptool.sh install && sudo loginctl enable-linger $(whoami) && DOCKER_HOST=unix:///run/user/1001/docker.sock docker context use rootless'
 
-    - name: Install a number of pip packages
-      ansible.builtin.pip: # the pip module has many useful arguments, for instance related to venvs
-        name: "{{ test_pip_packages }}"
+    - name: install gpu support 1
+      ansible.builtin.cmd:
+        cmd: sudo apt-get -y install alsa-utils ubuntu-drivers-common
+
+    - name: install gpu support 2
+      ansible.builtin.cmd:
+        cmd: sudo ubuntu-drivers install
+
+    - name: install gpu support 3
+      ansible.builtin.cmd:
+        cmd: sudo nvidia-smi --gpu-reset
+
+    - name: install nvidia support for Docker 1
+      ansible.builtin.shell:
+        cmd: curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+              && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+              sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+              sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+    - name: install gpu support 4
+      ansible.builtin.cmd:
+        cmd: sudo apt-get update
+
+    - name: install gpu support 5
+      ansible.builtin.cmd:
+        cmd: sudo apt-get install -y nvidia-container-toolkit
+
+    - name: install gpu support 6
+      ansible.builtin.cmd:
+        cmd: nvidia-ctk runtime configure --runtime=docker --config=$HOME/.config/docker/daemon.json
+
+    - name: install gpu support 7
+      ansible.builtin.cmd:
+        cmd: systemctl --user restart docker
+
+    - name: install gpu support 8
+      ansible.builtin.cmd:
+        cmd: sudo nvidia-ctk config --set nvidia-container-cli.no-cgroups --in-place
+
+    - name: obtain alphafold 3 sourcecode
+      ansible.builtin.cmd:
+        cmd: git clone https://github.com/google-deepmind/alphafold3.git
+
+    - name: fetch database 1
+      ansible.builtin.cmd:
+        chdir: alphafold3
+        cmd: chmod 755 fetch_databases.sh
+
+    - name: fetch database 2
+      ansible.builtin.cmd:
+        chdir: alphafold3
+        cmd: ./fetch_databases.sh gen_db
+
+    - name: build docker container
+      ansible.builtin.cmd:
+        chdir: alphafold3
+        cmd: docker build -t alphafold3 -f docker/Dockerfile .
+
+
+
+
+    # - name: install GPU support
+    # - name: NVIDIA support for Docker
+    # - name: Obtain alphafold 3 source code
+    # - name: fetch database
+    
+    # Until this step, the docker alphafold is ready to use
+    # User needs to:
+    # - transfer model parameter
+    # - transfer input file
+    # - run docker alphafold
+
+
+
+
+
+
+
+
+
+
+    # - name: Loop over all non-system users and display their names
+    #   ansible.builtin.debug:
+    #     msg: The user {{ item.user }} exists on the system.
+    #   with_items: "{{ fact_regular_users }}"
+    #   when: ansible_os_family == 'Debian' # we can use Ansible OS facts because we have set gather_facts to true
+
+    # - name: This is a block of tasks that belong together
+    #   when: _src_component_boolean # this condition is applied to all tasks in the block
+    #   tags: molecule-idempotence-notest # same for tags
+    #   block:
+
+    #     - name: Copy some content to a file
+    #       ansible.builtin.copy:
+    #         dest: "{{ testfile }}"
+    #         mode: "0700"
+    #         owner: root
+    #         group: root
+    #         content: "{{ _src_component_bar | split | map('regex_replace', 'X', '') | join }}" # You can create pipes using filters
+    #         # src: foo.txt # instead of 'content', you can also pass the 'src' argument to copy an entire file
+
+    #     - name: Cat the contents of this file
+    #       ansible.builtin.command:
+    #         cmd: cat {{ testfile }}
+    #       register: cat_testfile # store the results of this module in a new variable
+
+    #     - name: Debug the results of our cat command
+    #       ansible.builtin.debug:
+    #         var: cat_testfile.stdout
+
+    #     - name: Unlike the command module, shell module can use shell features like redirection
+    #       ansible.builtin.shell:
+    #         cmd: cat {{ testfile }} > /tmp/test2
+
+    # - name: Install a number of pip packages
+    #   ansible.builtin.pip: # the pip module has many useful arguments, for instance related to venvs
+    #     name: "{{ test_pip_packages }}"
