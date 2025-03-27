@@ -7,7 +7,7 @@
 
   roles:
     - role: uusrc.general.fact_regular_users
-    - role: uursrc.general.fact_workspace_info
+    - role: uusrc.general.fact_workspace_info
 
   tasks:
     - name: Update linux
