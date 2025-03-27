@@ -28,9 +28,8 @@
       ansible.builtin.file:
         state: directory
         path: "{{ db_path }}"
-        mode: "0750"
+        mode: "0755"
         owner: root
-        group: docker
 
     - name: Run fetch_databases
       ansible.builtin.shell: "{{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
