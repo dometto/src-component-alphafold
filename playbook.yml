@@ -10,12 +10,6 @@
     - role: uusrc.general.fact_workspace_info
 
   tasks:
-    - name: Update linux
-      ansible.builtin.apt:
-        update_cache: true
-        upgrade: full
-        name: ca-certificates curl
-
     - name: Obtain alphafold 3 sourcecode
       ansible.builtin.git:
         repo: https://github.com/google-deepmind/alphafold3.git
