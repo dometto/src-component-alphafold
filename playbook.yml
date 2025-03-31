@@ -2,17 +2,22 @@
 - name: Example component
   hosts: localhost # On ResearchCloud, the target host is always simply 'localhost'.
   vars:
+    alphafold_repo_url: https://github.com/google-deepmind/alphafold3.git
     alphafold_repo_path: /tmp/alphafold
+    default_group_name: regular_users
   gather_facts: true
 
   roles:
     - role: uusrc.general.fact_regular_users
     - role: uusrc.general.fact_workspace_info
-
+    - role: uusrc.general.default_group
+      vars:
+        default_group_group:
+          groupname: "{{ default_group_name }}"
   tasks:
     - name: Obtain alphafold 3 sourcecode
       ansible.builtin.git:
-        repo: https://github.com/google-deepmind/alphafold3.git
+        repo: "{{ alphafold_repo_url }}"
         dest: "{{ alphafold_repo_path }}"
 
     - name: Ensure that permanent storage is available
@@ -24,14 +29,14 @@
       ansible.builtin.set_fact:
         db_path: "{{ fact_workspace_storage[0]['mount'] }}"
     
-    - name: Create directory on permanent storage
+    - name: Create data directory with setgid
       ansible.builtin.file:
-        state: directory
         path: "{{ db_path }}"
-        mode: "0755"
         owner: root
+        group: "{{ default_group_name }}"
+        mode: 02770
+        state: directory
+        recurse: true
 
     - name: Run fetch_databases
-      ansible.builtin.shell: "{{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
-      args:
-        executable: /bin/bash
+      ansible.builtin.shell: "bash {{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
