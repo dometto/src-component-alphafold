@@ -4,6 +4,7 @@
   vars:
     alphafold_repo_url: https://github.com/google-deepmind/alphafold3.git
     alphafold_repo_path: /tmp/alphafold
+    alphafold_repo_docker_path: docker
     default_group_name: regular_users
   gather_facts: true
 
@@ -23,7 +24,7 @@
     - name: Build image from Dockerfile
       community.docker.docker_image:
         build:
-          path: "{{ alphafold_repo_path }}"
+          path: "{{ alphafold_repo_path }}/{{ alphafold_repo_docker_path }}"
         name: alphafold
         source: build
 
