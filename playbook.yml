@@ -20,6 +20,13 @@
         repo: "{{ alphafold_repo_url }}"
         dest: "{{ alphafold_repo_path }}"
 
+    - name: Build image from Dockerfile
+      community.docker.docker_image:
+        build:
+          path: "{{ alphafold_repo_path }}"
+        name: alphafold
+        source: build
+
     - name: Ensure that permanent storage is available
       when: fact_workspace_storage | length == 0
       ansible.builtin.fail:
