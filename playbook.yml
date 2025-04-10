@@ -5,7 +5,7 @@
     alphafold_repo_url: https://github.com/google-deepmind/alphafold3.git
     alphafold_repo_path: /tmp/alphafold
     alphafold_repo_docker_path: docker
-    default_group_name: regular_users
+    default_group_name: docker
   gather_facts: true
 
   roles:
