@@ -34,7 +34,7 @@
           dockerfile: "{{ alphafold_repo_docker_path }}"
         name: alphafold
         source: build
-        failed_when: false
+      failed_when: false
 
     - name: Set path to databases
       ansible.builtin.set_fact:
