@@ -9,13 +9,19 @@
   gather_facts: true
 
   roles:
-    - role: uusrc.general.fact_regular_users
+    - role: uusrc.general.require_src_docker
     - role: uusrc.general.fact_workspace_info
+    - role: uusrc.general.fact_regular_users
     - role: uusrc.general.default_group
       vars:
         default_group_group:
           groupname: "{{ default_group_name }}"
   tasks:
+    - name: Ensure that permanent storage is available
+      when: fact_workspace_storage | length == 0
+      ansible.builtin.fail:
+        msg: "No permanent storage found on the workspace! Exiting"
+
     - name: Obtain alphafold 3 sourcecode
       ansible.builtin.git:
         repo: "{{ alphafold_repo_url }}"
@@ -24,14 +30,10 @@
     - name: Build image from Dockerfile
       community.docker.docker_image:
         build:
-          path: "{{ alphafold_repo_path }}/{{ alphafold_repo_docker_path }}"
+          path: "{{ alphafold_repo_path }}"
+          dockerfile: "{{ alphafold_repo_docker_path }}"
         name: alphafold
         source: build
-
-    - name: Ensure that permanent storage is available
-      when: fact_workspace_storage | length == 0
-      ansible.builtin.fail:
-        msg: "No permanent storage found on the workspace! Exiting"
 
     - name: Set path to databases
       ansible.builtin.set_fact:
