@@ -34,7 +34,8 @@
           dockerfile: "{{ alphafold_repo_docker_path }}"
         name: alphafold
         source: build
-      failed_when: false
+      async: 1800
+      poll: 60
 
     - name: Set path to databases
       ansible.builtin.set_fact:
@@ -50,4 +51,7 @@
         recurse: true
 
     - name: Run fetch_databases
-      ansible.builtin.shell: "bash {{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
+      ansible.builtin.shell: "{{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
+      args:
+        executable: /bin/bash
+        creates: "{{ db_path }}" # don't re-run fetch_databases if db_path on the storage volume already exists
