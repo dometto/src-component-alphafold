@@ -39,7 +39,7 @@
 
     - name: Set path to databases
       ansible.builtin.set_fact:
-        db_path: "{{ fact_workspace_storage[0]['mount'] }}"
+        db_path: "{{ fact_workspace_storage[0]['mount'] }}/alphafold3"
     
     - name: Create data directory with setgid
       ansible.builtin.file:
