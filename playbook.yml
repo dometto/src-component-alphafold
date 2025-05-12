@@ -37,21 +37,26 @@
       async: 1800
       poll: 60
 
-    - name: Set path to databases
+    - name: Set db root path
       ansible.builtin.set_fact:
-        db_path: "{{ fact_workspace_storage[0]['mount'] }}/alphafold3"
+        db_root_path: "{{ fact_workspace_storage[0]['mount'] }}/alphafold3"
+
+    - name: Set db path
+      ansible.builtin.set_fact:
+        db_path: "{{ db_root_path }}/public_databases"
     
     - name: Create data directory with setgid
       ansible.builtin.file:
-        path: "{{ db_path }}"
+        path: "{{ db_root_path }}"
         owner: root
         group: "{{ default_group_name }}"
         mode: 02770
         state: directory
         recurse: true
 
+
     - name: Run fetch_databases
-      ansible.builtin.shell: "{{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
+      ansible.builtin.command: "bash {{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
       args:
-        executable: /bin/bash
         creates: "{{ db_path }}" # don't re-run fetch_databases if db_path on the storage volume already exists
+  
