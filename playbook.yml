@@ -85,7 +85,7 @@
         dest: /usr/local/bin/run_alphafold
         mode: "0655"
         owner: root
-        groupt: root
+        group: root
 
     # - name: Run fetch_databases
     #   ansible.builtin.command: "bash {{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
