@@ -6,6 +6,13 @@
     alphafold_repo_path: /tmp/alphafold
     alphafold_repo_docker_path: docker/Dockerfile
     default_group_name: docker
+    alphafold_subdirs:
+      - model_parameters
+      - public_databases
+      - af_input
+      - af_ouput
+    alphafold_image_name: alphafold3
+    alphafold_dirname: alphafold3
   gather_facts: true
 
   roles:
@@ -16,11 +23,28 @@
       vars:
         default_group_group:
           groupname: "{{ default_group_name }}"
+
   tasks:
     - name: Ensure that permanent storage is available
       when: fact_workspace_storage | length == 0
       ansible.builtin.fail:
         msg: "No permanent storage found on the workspace! Exiting"
+
+    - name: Set storage directory
+      ansible.builtin.set_fact:
+        alphafold_storage: "{{ fact_workspace_storage[0]['mount'] }}"
+
+    - name: Set storage directory variable for each user
+      ansible.builtin.copy:
+        dest: /etc/profile.d/alphafold.sh
+        mode: "0644"
+        content: |
+          export ALPHAFOLD_STORAGE="{{ alphafold_storage }}"
+
+    - name: Install zstd so user can decompress model parameters
+      ansible.builtin.package:
+        name: zstd
+        state: present
 
     - name: Obtain alphafold 3 sourcecode
       ansible.builtin.git:
@@ -32,31 +56,38 @@
         build:
           path: "{{ alphafold_repo_path }}"
           dockerfile: "{{ alphafold_repo_docker_path }}"
-        name: alphafold
+        name: "{{ alphafold_image_name }}"
         source: build
       async: 1800
       poll: 60
 
     - name: Set db root path
       ansible.builtin.set_fact:
-        db_root_path: "{{ fact_workspace_storage[0]['mount'] }}/alphafold3"
+        db_root_path: "{{ alphafold_storage }}/{{ alphafold_dirname }}"
 
     - name: Set db path
       ansible.builtin.set_fact:
         db_path: "{{ db_root_path }}/public_databases"
-    
-    - name: Create data directory with setgid
+
+    - name: Create alphafold directories with setgid
       ansible.builtin.file:
-        path: "{{ db_root_path }}"
+        path: "{{ item }}"
         owner: root
         group: "{{ default_group_name }}"
-        mode: 02770
+        mode: "02770"
         state: directory
         recurse: true
+      with_items: "{{ [db_root_path, db_path] + alphafold_subdirs }}"
 
+    - name: Place convenience script
+      ansible.builtin.copy:
+        src: run_alphafold.sh.j2
+        dest: /usr/local/bin/run_alphafold
+        mode: "0655"
+        owner: root
+        groupt: root
 
     - name: Run fetch_databases
       ansible.builtin.command: "bash {{ alphafold_repo_path }}/fetch_databases.sh {{ db_path }}"
       args:
         creates: "{{ db_path }}" # don't re-run fetch_databases if db_path on the storage volume already exists
-  
