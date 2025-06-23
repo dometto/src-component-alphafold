@@ -80,7 +80,7 @@
       with_items: "{{ [db_root_path, db_path] + alphafold_subdirs }}"
 
     - name: Place convenience script
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: run_alphafold.sh.j2
         dest: /usr/local/bin/run_alphafold
         mode: "0655"
