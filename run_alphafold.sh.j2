@@ -84,6 +84,7 @@ $EXTRA_OPTS"
 
 echo
 echo "Will run AlphaFold3 with the following options:"
+echo
 echo "Input: $ALPHAFOLD_INPUT"
 echo "Output: $ALPHAFOLD_OUTPUT"
 echo "Model parameters: $ALPHAFOLD_MODEL"
@@ -94,15 +95,16 @@ echo
 read -p "Proceed? [Y/y to continue, or other key to abort]" -n 1 -r
 echo    # (optional) move to a new line
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "RUN"
-    docker run -it \
-            --volume "$ALPHAFOLD_INPUT:/root/af_input" \
-            --volume "$ALPHAFOLD_OUTPUT/af_output:/root/af_output" \
-            --volume "$ALPHAFOLD_MODEL/model_parameters:/root/models" \
-            --volume "$ALPHAFOLD_DBS:/root/public_databases" \
-            --gpus all \
-            "$ALPHAFOLD_IMAGE_NAME" \
-            python run_alphafold.py "$OPTS"
+    cmd="docker run -it \
+      --volume \"$ALPHAFOLD_INPUT:/root/af_input\" \
+      --volume \"$ALPHAFOLD_OUTPUT:/root/af_output\" \
+      --volume \"$ALPHAFOLD_MODEL:/root/models\" \
+      --volume \"$ALPHAFOLD_DBS:/root/public_databases\" \
+      --gpus all \
+      $ALPHAFOLD_IMAGE_NAME \
+      python run_alphafold.py $OPTS"
+    echo "$cmd"
+    eval "$cmd"
 else
     echo "Aborting..."
     exit 0
